@@ -48,4 +48,4 @@ export function AvatarInitials({ initials }: { initials: string }) {
   return <span>{initials}</span>;
 }
 
-export { Avatar, AvatarImage, AvatarFallback, AvatarInitials };
+export { Avatar, AvatarImage, AvatarFallback };
