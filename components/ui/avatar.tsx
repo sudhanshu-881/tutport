@@ -47,4 +47,9 @@ const AvatarFallback = React.forwardRef<
 ));
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
 
-export { Avatar, AvatarImage, AvatarFallback };
+export function AvatarInitials({ initials }: { initials: string }) {
+  return <span>{initials}</span>;
+}
+
+
+export { Avatar, AvatarImage, AvatarFallback, AvatarInitials };
