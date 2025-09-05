@@ -3,32 +3,56 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  BookOpen,
-  Clock,
-  Award,
-  TrendingUp,
-  Play,
-  Eye,
-  Calendar,
-} from "lucide-react";
+// ... your imports here
 
-import { Header } from "@/components/layout/Header";
-import { getStudentDashboardData } from "@/lib/student";
+interface Student {
+  name: string;
+  email: string;
+  studentId: string;
+  grade: string;
+}
+
+interface Exam {
+  id: string;
+  title: string;
+  duration: number;
+  totalQuestions: number;
+  subject: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+}
+
+interface Result {
+  id: string;
+  examTitle: string;
+  status: string;
+  date: string;
+  duration: number;
+  score: number;
+}
+
+interface Stats {
+  totalExams: number;
+  examsTaken: number;
+  examsPassed: number;
+  averageScore: number;
+}
+
+interface DashboardData {
+  student: Student;
+  availableExams: Exam[];
+  recentResults: Result[];
+  stats: Stats;
+}
 
 export default function StudentDashboard() {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const dashboardData = await getStudentDashboardData();
+        const dashboardData: DashboardData = await getStudentDashboardData();
         setData(dashboardData);
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
