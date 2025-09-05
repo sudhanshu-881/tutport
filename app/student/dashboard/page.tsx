@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
-// ... your imports here
-
+// Define interfaces for your data structures
 interface Student {
   name: string;
   email: string;
@@ -44,191 +42,134 @@ interface DashboardData {
   stats: Stats;
 }
 
-export default function StudentDashboard() {
+// Mock your data fetching function here (replace with actual API call)
+async function getStudentDashboardData(): Promise<DashboardData> {
+  // Simulated fetch delay
+  await new Promise((res) => setTimeout(res, 500));
+
+  // Example static data, replace with real API data
+  return {
+    student: {
+      name: "John Doe",
+      email: "john@example.com",
+      studentId: "S123456",
+      grade: "10th Grade",
+    },
+    availableExams: [
+      {
+        id: "1",
+        title: "Math Exam",
+        duration: 60,
+        totalQuestions: 50,
+        subject: "Mathematics",
+        difficulty: "Hard",
+      },
+      {
+        id: "2",
+        title: "Science Exam",
+        duration: 45,
+        totalQuestions: 40,
+        subject: "Science",
+        difficulty: "Medium",
+      },
+    ],
+    recentResults: [
+      {
+        id: "r1",
+        examTitle: "English Exam",
+        status: "Passed",
+        date: "2024-08-01",
+        duration: 50,
+        score: 85,
+      },
+      {
+        id: "r2",
+        examTitle: "History Exam",
+        status: "Failed",
+        date: "2024-07-20",
+        duration: 40,
+        score: 55,
+      },
+    ],
+    stats: {
+      totalExams: 10,
+      examsTaken: 7,
+      examsPassed: 5,
+      averageScore: 78,
+    },
+  };
+}
+
+export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
+    async function fetchDashboard() {
       try {
-        const dashboardData: DashboardData = await getStudentDashboardData();
+        const dashboardData = await getStudentDashboardData();
         setData(dashboardData);
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
+      } catch (err) {
+        console.error("Failed to load dashboard data:", err);
+        setError("Failed to load dashboard data");
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     }
-    fetchData();
+
+    fetchDashboard();
   }, []);
 
-  if (isLoading || !data) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
+  if (loading) {
+    return <div>Loading dashboard...</div>;
   }
 
-  const startExam = (examId: string) => {
-    router.push(`/student/exam/${examId}`);
-  };
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
-  const viewResults = (resultId: string) => {
-    router.push(`/student/results/${resultId}`);
-  };
+  if (!data) {
+    return <div>No dashboard data available.</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">
-                  Welcome back, {data.student.name}!
-                </h1>
-                <p className="text-blue-100 text-lg">
-                  {data.student.grade} | Student ID: {data.student.studentId}
-                </p>
-              </div>
-              <Avatar className="h-16 w-16 bg-white/20">
-                <AvatarFallback>
-                  {data.student.name
-                    .split(" ")
-                    .map((n: string) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </div>
+    <main className="p-8">
+      <h1 className="text-3xl font-bold mb-6">
+        Welcome, {data.student.name}!
+      </h1>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Exams</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center space-x-2">
-              <BookOpen />
-              <span>{data.stats.totalExams}</span>
-            </CardContent>
-          </Card>
+      <section className="mb-8">
+        <h2 className="text-2xl font-semibold mb-2">Your Stats</h2>
+        <ul>
+          <li>Total Exams: {data.stats.totalExams}</li>
+          <li>Exams Taken: {data.stats.examsTaken}</li>
+          <li>Exams Passed: {data.stats.examsPassed}</li>
+          <li>Average Score: {data.stats.averageScore}%</li>
+        </ul>
+      </section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Exams Taken</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center space-x-2">
-              <Clock />
-              <span>{data.stats.examsTaken}</span>
-            </CardContent>
-          </Card>
+      <section className="mb-8">
+        <h2 className="text-2xl font-semibold mb-2">Available Exams</h2>
+        <ul>
+          {data.availableExams.map((exam) => (
+            <li key={exam.id} className="mb-2">
+              <strong>{exam.title}</strong> - {exam.subject} ({exam.difficulty}) - Duration: {exam.duration} mins - Questions: {exam.totalQuestions}
+            </li>
+          ))}
+        </ul>
+      </section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Exams Passed</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center space-x-2">
-              <Award />
-              <span>{data.stats.examsPassed}</span>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Average Score</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center space-x-2">
-              <TrendingUp />
-              <span>{data.stats.averageScore}%</span>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Ongoing Exams */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Ongoing Exams</h2>
-          {data.ongoingExams.length === 0 ? (
-            <p>No ongoing exams at the moment.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {data.ongoingExams.map((exam) => (
-                <Card key={exam.id}>
-                  <CardHeader>
-                    <CardTitle>{exam.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="mb-2">{exam.description}</p>
-                    <Progress value={exam.progress} className="mb-4" />
-                    <div className="flex space-x-4 text-gray-600">
-                      <Clock className="inline-block" />
-                      <span>{exam.duration} minutes</span>
-                      <Play className="inline-block" />
-                      <span>{exam.questions} questions</span>
-                    </div>
-                    <Button
-                      className="mt-4"
-                      onClick={() => startExam(exam.id)}
-                      variant="default"
-                    >
-                      Continue Exam
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent Results */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Recent Results</h2>
-          {data.recentResults.length === 0 ? (
-            <p>No recent results to show.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {data.recentResults.map((result) => (
-                <Card key={result.id}>
-                  <CardHeader>
-                    <CardTitle>{result.examTitle}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-2 flex items-center space-x-4">
-                      <div className="flex items-center space-x-1 text-gray-600">
-                        <Eye />
-                        <span>{result.status}</span>
-                      </div>
-                      <div className="flex items-center space-x-1 text-gray-600">
-                        <Calendar />
-                        <span>{new Date(result.date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center space-x-1 text-gray-600">
-                        <Clock />
-                        <span>{result.duration} minutes</span>
-                      </div>
-                    </div>
-                    <p className="mb-4">Score: {result.score}%</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => viewResults(result.id)}
-                    >
-                      View Result
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+      <section>
+        <h2 className="text-2xl font-semibold mb-2">Recent Results</h2>
+        <ul>
+          {data.recentResults.map((result) => (
+            <li key={result.id} className="mb-2">
+              <strong>{result.examTitle}</strong> - Status: {result.status} - Score: {result.score}% - Date: {result.date}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </main>
   );
 }
