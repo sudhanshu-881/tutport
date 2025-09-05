@@ -43,7 +43,7 @@ const AvatarFallback = React.forwardRef<
 ));
 AvatarFallback.displayName = "AvatarFallback";
 
-// Optional: Only export AvatarInitials if you really use it elsewhere.
+// Optional: Only export AvatarInitials if you use it elsewhere.
 export function AvatarInitials({ initials }: { initials: string }) {
   return <span>{initials}</span>;
 }
