@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,25 +44,12 @@ export default function ExamPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
 
+  // Use ref to track if submitting to avoid stale closure issues in callbacks
+  const isSubmittingRef = useRef(false);
+
   useEffect(() => {
     loadExamData();
   }, [examId]);
-
-  useEffect(() => {
-    if (timeRemaining > 0) {
-      const timer = setInterval(() => {
-        setTimeRemaining(prev => {
-          if (prev <= 1) {
-            handleSubmitExam();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [timeRemaining]);
 
   const loadExamData = async () => {
     try {
@@ -74,6 +61,41 @@ export default function ExamPage() {
       router.push('/student/dashboard');
     }
   };
+
+  // useCallback so can safely depend on it in timer effect
+  const handleSubmitExam = useCallback(async () => {
+    if (isSubmittingRef.current) return;
+
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+
+    try {
+      const result = await submitExam(examId, answers);
+      toast.success('Exam submitted successfully!');
+      router.push(`/student/results/${result.id}`);
+    } catch (error) {
+      toast.error('Failed to submit exam');
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
+    }
+  }, [examId, answers, router]);
+
+  useEffect(() => {
+    if (timeRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleSubmitExam();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeRemaining, handleSubmitExam]);
 
   const handleAnswerChange = (questionId: string, answer: string) => {
     setAnswers(prev => ({
@@ -94,25 +116,11 @@ export default function ExamPage() {
     });
   };
 
-  const handleSubmitExam = useCallback(async () => {
-    if (isSubmitting) return;
-    
-    setIsSubmitting(true);
-    try {
-      const result = await submitExam(examId, answers);
-      toast.success('Exam submitted successfully!');
-      router.push(`/student/results/${result.id}`);
-    } catch (error) {
-      toast.error('Failed to submit exam');
-      setIsSubmitting(false);
-    }
-  }, [examId, answers, router, isSubmitting]);
-
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
@@ -130,6 +138,11 @@ export default function ExamPage() {
     );
   }
 
+  // Safety check: prevent error if questions array empty or currentQuestion invalid
+  if (!examData.questions.length || currentQuestion < 0 || currentQuestion >= examData.questions.length) {
+    return <p className="text-center mt-20 text-red-600">Invalid question index.</p>;
+  }
+
   const currentQ = examData.questions[currentQuestion];
   const progress = ((currentQuestion + 1) / examData.totalQuestions) * 100;
   const answeredQuestions = Object.keys(answers).length;
@@ -137,7 +150,7 @@ export default function ExamPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Exam Header */}
         <Card className="mb-6 border-l-4 border-l-blue-600">
@@ -146,25 +159,27 @@ export default function ExamPage() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{examData.title}</h1>
                 <p className="text-gray-600 mt-1">
-                  Question {currentQuestion + 1} of {examData.totalQuestions} • 
-                  {answeredQuestions} answered • 
+                  Question {currentQuestion + 1} of {examData.totalQuestions} •
+                  {answeredQuestions} answered •
                   {flaggedQuestions.size} flagged
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-4">
-                <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                  timeRemaining < 300 ? 'bg-red-100 text-red-800' : 
-                  timeRemaining < 600 ? 'bg-yellow-100 text-yellow-800' : 
-                  'bg-green-100 text-green-800'
-                }`}>
+                <div
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                    timeRemaining < 300 ? 'bg-red-100 text-red-800' :
+                    timeRemaining < 600 ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'
+                  }`}
+                >
                   <Clock className="h-5 w-5" />
                   <span className="font-mono text-lg font-semibold">
                     {formatTime(timeRemaining)}
                   </span>
                 </div>
-                
-                <Button 
+
+                <Button
                   onClick={handleSubmitExam}
                   disabled={isSubmitting}
                   className="bg-red-600 hover:bg-red-700"
@@ -173,7 +188,7 @@ export default function ExamPage() {
                 </Button>
               </div>
             </div>
-            
+
             <Progress value={progress} className="mt-4 h-2" />
           </CardContent>
         </Card>
@@ -190,7 +205,7 @@ export default function ExamPage() {
                       ({currentQ.marks} {currentQ.marks === 1 ? 'mark' : 'marks'})
                     </span>
                   </CardTitle>
-                  
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -202,12 +217,12 @@ export default function ExamPage() {
                   </Button>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-6">
                 <div className="text-lg leading-relaxed">
                   {currentQ.question}
                 </div>
-                
+
                 <RadioGroup
                   value={answers[currentQ.id] || ''}
                   onValueChange={(value) => handleAnswerChange(currentQ.id, value)}
@@ -216,7 +231,7 @@ export default function ExamPage() {
                   {currentQ.options.map((option, index) => (
                     <div key={index} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors">
                       <RadioGroupItem value={option} id={`option-${index}`} />
-                      <Label 
+                      <Label
                         htmlFor={`option-${index}`}
                         className="flex-1 cursor-pointer text-base"
                       >
@@ -225,7 +240,7 @@ export default function ExamPage() {
                     </div>
                   ))}
                 </RadioGroup>
-                
+
                 <div className="flex items-center justify-between pt-6 border-t">
                   <Button
                     variant="outline"
@@ -235,11 +250,11 @@ export default function ExamPage() {
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     Previous
                   </Button>
-                  
+
                   <div className="text-sm text-gray-500">
                     Subject: {currentQ.subject} • Difficulty: {currentQ.difficulty}
                   </div>
-                  
+
                   <Button
                     onClick={() => setCurrentQuestion(prev => Math.min(examData.questions.length - 1, prev + 1))}
                     disabled={currentQuestion === examData.questions.length - 1}
@@ -264,7 +279,7 @@ export default function ExamPage() {
                     const isAnswered = answers[examData.questions[index].id];
                     const isFlagged = flaggedQuestions.has(index);
                     const isCurrent = index === currentQuestion;
-                    
+
                     return (
                       <Button
                         key={index}
@@ -316,9 +331,9 @@ export default function ExamPage() {
                     <span className="font-semibold text-red-600">{flaggedQuestions.size}</span>
                   </div>
                 </div>
-                
+
                 <div className="pt-4 border-t">
-                  <Button 
+                  <Button
                     onClick={handleSubmitExam}
                     disabled={isSubmitting}
                     className="w-full bg-blue-600 hover:bg-blue-700"
