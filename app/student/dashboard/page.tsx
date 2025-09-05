@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar';
 import { BookOpen, Clock, Award, TrendingUp, Play, Eye, Calendar } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { getStudentDashboardData } from '@/lib/student';
