@@ -44,7 +44,7 @@ export default function ExamPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
 
-  // Use ref to track if submitting to avoid stale closure issues in callbacks
+  // Use ref to avoid stale closure issues in callbacks
   const isSubmittingRef = useRef(false);
 
   useEffect(() => {
@@ -55,14 +55,13 @@ export default function ExamPage() {
     try {
       const data = await getExamData(examId);
       setExamData(data);
-      setTimeRemaining(data.duration * 60); // Convert minutes to seconds
+      setTimeRemaining(data.duration * 60); // minutes to seconds
     } catch (error) {
       toast.error('Failed to load exam data');
       router.push('/student/dashboard');
     }
   };
 
-  // useCallback so can safely depend on it in timer effect
   const handleSubmitExam = useCallback(async () => {
     if (isSubmittingRef.current) return;
 
@@ -138,7 +137,6 @@ export default function ExamPage() {
     );
   }
 
-  // Safety check: prevent error if questions array empty or currentQuestion invalid
   if (!examData.questions.length || currentQuestion < 0 || currentQuestion >= examData.questions.length) {
     return <p className="text-center mt-20 text-red-600">Invalid question index.</p>;
   }
